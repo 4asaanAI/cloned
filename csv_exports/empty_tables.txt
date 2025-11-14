@@ -1,0 +1,26 @@
+The following tables are currently empty (no data):
+- announcements
+- assignment_submissions
+- assignments
+- attendance
+- audit_logs
+- chat_messages
+- class_subjects
+- classes
+- contact_inquiries
+- courses
+- departments
+- enrollments
+- exam_results
+- exams
+- fee_records
+- gallery_images
+- leave_applications
+- library_books
+- library_transactions
+- permissions
+- role_permissions
+- student_transport
+- subjects
+- timetables
+- transport_routes

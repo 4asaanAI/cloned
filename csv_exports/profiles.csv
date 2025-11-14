@@ -1,0 +1,4 @@
+id,email,full_name,role,sub_role,department_id,avatar_url,phone,status,created_at,updated_at,admission_no,employee_id,parent_name,parent_phone,address,date_of_birth,gender,blood_group
+9f6f8fea-9132-47e0-a480-f65e0f097b67,shubhsm0411@gmail.com,abcd,admin,head,,,938372938,active,2025-11-05 06:36:22.819691+00,2025-11-05 06:36:22.819691+00,,werwer,,,,,
+c61962ac-a640-4139-906a-d01cc6c18272,admin0411@gmail.com,asdsa,admin,head,,,asd,active,2025-11-05 06:38:47.200229+00,2025-11-05 06:38:47.200229+00,,asd,,,,,
+905e10d1-60e8-457d-88a1-08749b0bb4e2,abcd@gmail.com,dfd,admin,head,,,fd,active,2025-11-05 06:50:20.598106+00,2025-11-05 06:50:20.598106+00,,df,,,,,
