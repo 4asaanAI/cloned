@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, Send, Loader2, Database, Trash2 } from 'lucide-react';
-import { sendQueryToN8N } from '../../lib/n8nService';
+import { X, Send, Loader2, Database, Trash2, Coins } from 'lucide-react';
+import { chatWithOpenAI } from '../../lib/openaiService';
+import { getUserTokens, deductTokens } from '../../lib/tokenService';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface ChatMessage {
   id: string;
@@ -12,14 +14,29 @@ interface ChatMessage {
 const STORAGE_KEY = 'dashboard_chat_messages';
 
 export function DashboardChatbot() {
+  const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [tokens, setTokens] = useState<number>(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatboxRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const loadTokens = async () => {
+      if (user?.id) {
+        try {
+          const userTokens = await getUserTokens(user.id);
+          setTokens(userTokens);
+        } catch (error) {
+          console.error('Error loading tokens:', error);
+        }
+      }
+    };
+
+    loadTokens();
+
     const savedMessages = sessionStorage.getItem(STORAGE_KEY);
     if (savedMessages) {
       try {
@@ -36,7 +53,7 @@ export function DashboardChatbot() {
     } else {
       initializeChat();
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     if (messages.length > 0) {
@@ -79,6 +96,17 @@ export function DashboardChatbot() {
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || isLoading) return;
 
+    if (tokens <= 0) {
+      const noTokensMessage: ChatMessage = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: 'No tokens left, please buy more.',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, noTokensMessage]);
+      return;
+    }
+
     const userMessage: ChatMessage = {
       id: crypto.randomUUID(),
       role: 'user',
@@ -91,7 +119,15 @@ export function DashboardChatbot() {
     setIsLoading(true);
 
     try {
-      const result = await sendQueryToN8N(inputMessage.trim());
+      const result = await chatWithOpenAI(
+        inputMessage.trim(),
+        'You are an AI assistant for a school ERP system. Help users query and manage school data.'
+      );
+
+      if (user?.id && result.tokensUsed > 0) {
+        const remainingTokens = await deductTokens(user.id, result.tokensUsed);
+        setTokens(remainingTokens);
+      }
 
       const assistantMessage: ChatMessage = {
         id: crypto.randomUUID(),
@@ -102,12 +138,14 @@ export function DashboardChatbot() {
 
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
-      console.error('Error sending message to N8N:', error);
+      console.error('Error sending message:', error);
       const errorMessage: ChatMessage = {
         id: crypto.randomUUID(),
         role: 'assistant',
         content:
-          'Sorry—something went wrong while processing that request. Please try again, or refine your query.',
+          error instanceof Error && error.message === 'Insufficient tokens'
+            ? 'No tokens left, please buy more.'
+            : 'Sorry—something went wrong while processing that request. Please try again, or refine your query.',
         timestamp: new Date()
       };
       setMessages(prev => [...prev, errorMessage]);
@@ -142,23 +180,29 @@ export function DashboardChatbot() {
 
       {isOpen && (
         <div ref={chatboxRef} className="fixed bottom-6 right-6 w-96 h-[600px] bg-white dark:bg-gray-800 rounded-2xl shadow-2xl flex flex-col z-50 border border-gray-200 dark:border-gray-700">
-          <div className="bg-gradient-to-br from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 p-4 rounded-t-2xl flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
-                <Database className="w-6 h-6 text-blue-500" />
+          <div className="bg-gradient-to-br from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 p-4 rounded-t-2xl">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
+                  <Database className="w-6 h-6 text-blue-500" />
+                </div>
+                <div>
+                  <h3 className="text-white font-semibold">AI Data Assistant</h3>
+                  <p className="text-blue-100 text-xs">Query or update ERP data securely</p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-white font-semibold">AI Data Assistant</h3>
-                <p className="text-blue-100 text-xs">Query or update ERP data securely</p>
-              </div>
+              <button
+                onClick={() => setIsOpen(false)}
+                className="text-white hover:bg-white/20 rounded-lg p-1.5 transition-colors"
+                aria-label="Close chatbot"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
-            <button
-              onClick={() => setIsOpen(false)}
-              className="text-white hover:bg-white/20 rounded-lg p-1.5 transition-colors"
-              aria-label="Close chatbot"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-2 bg-white/10 px-3 py-2 rounded-lg">
+              <Coins className="w-4 h-4 text-yellow-300" />
+              <span className="text-white text-sm font-medium">{tokens.toLocaleString()} tokens remaining</span>
+            </div>
           </div>
 
           <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-gray-900">
