@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { DashboardChatbot } from './DashboardChatbot';
 import { GlobalSearch } from './GlobalSearch';
+import { TokenDisplay } from './TokenDisplay';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -210,6 +211,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         <GlobalSearch />
 
         <div className="flex items-center space-x-2 sm:space-x-4 flex-shrink-0">
+          <div className="hidden lg:block">
+            <TokenDisplay />
+          </div>
+
           <button
             onClick={toggleTheme}
             className="p-2 rounded-md hover:bg-blue-700 dark:hover:bg-gray-700 transition-colors"
